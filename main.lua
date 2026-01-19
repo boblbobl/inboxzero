@@ -1,6 +1,6 @@
 scene = {}
 function _init()
-  showgame()
+  showmenu()
 end
 
 function _update()

@@ -34,11 +34,29 @@ end
 
 function get_emails(count, difficulty)
   local emails = {}
-
-  for i = 0, count-1 do
-    add(emails, { subject="urgent: need help now!", body="BLA BLA BLA BLA BLA", avatar=rand(64, 88) })
+  local pool = {}
+  
+  -- filter by difficulty
+  for template in all(email_templates) do
+    if template.difficulty <= difficulty then
+      add(pool, template)
+    end
   end
-
+  
+  -- shuffle and select emails
+  for i = 1, min(count, #pool) do
+    local idx = rand(1, #pool + 1)
+    local template = pool[idx]
+    add(emails, {
+      subject=template.subject,
+      body=template.body,
+      avatar=template.avatar,
+      action=template.action,
+      difficulty=template.difficulty
+    })
+    del(pool, template)
+  end
+  
   return emails
 end
 

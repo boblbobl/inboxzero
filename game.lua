@@ -1,3 +1,72 @@
+-- menu screen
+function showmenu()
+  menu_selection = 1 -- 1=start, 2=credits
+  scene.update = update_menu
+  scene.draw = draw_menu
+end
+
+function update_menu()
+  if btnp(2) and menu_selection > 1 then
+    menu_selection -= 1
+  end
+  if btnp(3) and menu_selection < 2 then
+    menu_selection += 1
+  end
+  
+  if btnp(4) then -- z button
+    if menu_selection == 1 then
+      showgame()
+    else
+      showcredits()
+    end
+  end
+end
+
+function draw_menu()
+  cls(0)
+
+  -- logo
+  spr(128, 30, 10, 8, 4)
+  
+  
+  -- menu options
+  local start_color = menu_selection == 1 and 11 or 7
+  local credits_color = menu_selection == 2 and 11 or 7
+  
+  print("start game", 42, 60, start_color)
+  print("credits", 48, 70, credits_color)
+  
+  -- cursor
+  local cursor_y = menu_selection == 1 and 60 or 70
+  print("\x8e", 32, cursor_y, 11)
+end
+
+-- credits screen
+function showcredits()
+  scene.update = update_credits
+  scene.draw = draw_credits
+end
+
+function update_credits()
+  if btnp(4) or btnp(5) then -- z or x button
+    showmenu()
+  end
+end
+
+function draw_credits()
+  cls(0)
+  
+  print("inbox zero", 42, 20, 11)
+  print("a pico-8 game", 33, 30, 7)
+  print("", 0, 40, 7)
+  print("game by boblbobl", 24, 50, 7)
+  print("", 0, 58, 7)
+  print("pixel art by hatch", 21, 68, 7)
+  print("pixeljoint.com", 30, 76, 6)
+  print("", 0, 86, 7)
+  print("press \x8e to return", 24, 100, 11)
+end
+
 function showgame()
   top = 11
   email_h = 30
@@ -8,8 +77,16 @@ function showgame()
   anim_frames = 6
   camera_offset = 0
   deleting = false
+  
+  -- scoring system
+  score = 0
+  correct = 0
+  incorrect = 0
+  feedback_msg = ""
+  feedback_timer = 0
+  feedback_color = 7
 
-  emails = get_emails(99, 1)
+  emails = get_emails(20, 1)
   scene.update = update_game
   scene.draw = draw_game
 end
@@ -38,6 +115,27 @@ function update_game()
     if camera_offset < email_h then
       camera_offset += anim_frames
     else
+      -- check if action was correct
+      local email = emails[1]
+      local player_action = email_state == 2 and "keep" or "delete"
+      
+      if player_action == email.action then
+        score += 10
+        correct += 1
+        feedback_msg = "correct!"
+        feedback_color = 11
+      else
+        score -= 5
+        incorrect += 1
+        if email.action == "keep" then
+          feedback_msg = "oops! needed that"
+        else
+          feedback_msg = "that was spam!"
+        end
+        feedback_color = 8
+      end
+      feedback_timer = 30
+      
       -- reset email state
       email_state = 0
       email_offset = 0
@@ -49,6 +147,11 @@ function update_game()
       -- set deleting to false
       deleting = false
     end
+  end
+  
+  -- update feedback timer
+  if feedback_timer > 0 then
+    feedback_timer -= 1
   end
 
   if email_state == 1 and email_offset < state_offset then
@@ -95,9 +198,18 @@ function draw_statusbar()
   spr(18, 16, 2+camera_offset)
   spr(19, 24, 2+camera_offset)
   print(#emails, 16, 3+camera_offset, 7)
-  print("09:00 AM", 50, 3+camera_offset, 7)
+  print("score:"..score, 50, 3+camera_offset, 7)
   spr(2, 108, 2+camera_offset)
   spr(3, 118, 2+camera_offset)
+end
+
+function draw_feedback()
+  if feedback_timer > 0 then
+    local msg_w = #feedback_msg * 4
+    local x = 64 - (msg_w / 2)
+    rectfill(x-2, 50, x+msg_w+2, 58, 0)
+    print(feedback_msg, x, 52, feedback_color)
+  end
 end
 
 function draw_game()
@@ -116,8 +228,15 @@ function draw_game()
     end
 
     draw_hint()
+  else
+    -- game over
+    rectfill(20, 50, 107, 70, 0)
+    rectfill(21, 51, 106, 69, 7)
+    print("inbox zero!", 42, 54, 5)
+    print("score: "..score, 42, 61, 6)
   end
 
+  draw_feedback()
   camera(0, camera_offset)
   draw_statusbar()
 end
