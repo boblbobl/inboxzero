@@ -67,7 +67,15 @@ function draw_credits()
   print("press \x8e to return", 24, 100, 11)
 end
 
-function showgame()
+function showgame(level)
+  level = level or 1
+  current_level = level
+  
+  -- initialize total_score on first level
+  if level == 1 then
+    total_score = 0
+  end
+  
   top = 11
   email_h = 30
   email_w = 128
@@ -86,7 +94,8 @@ function showgame()
   feedback_timer = 0
   feedback_color = 7
 
-  emails = get_emails(20, 1)
+  -- 10 emails per level, difficulty increases
+  emails = get_emails(10, level)
   scene.update = update_game
   scene.draw = draw_game
 end
@@ -153,6 +162,17 @@ function update_game()
   if feedback_timer > 0 then
     feedback_timer -= 1
   end
+  
+  -- check for level complete and progress immediately
+  if #emails == 0 then
+    total_score += score
+    if current_level < 3 then
+      showgame(current_level + 1)
+    else
+      showgameover()
+    end
+    return
+  end
 
   if email_state == 1 and email_offset < state_offset then
     email_offset += anim_frames
@@ -198,7 +218,8 @@ function draw_statusbar()
   spr(18, 16, 2+camera_offset)
   spr(19, 24, 2+camera_offset)
   print(#emails, 16, 3+camera_offset, 7)
-  print("score:"..score, 50, 3+camera_offset, 7)
+  print("lvl"..current_level, 42, 3+camera_offset, 7)
+  print("score:"..score, 62, 3+camera_offset, 7)
   spr(2, 108, 2+camera_offset)
   spr(3, 118, 2+camera_offset)
 end
@@ -210,6 +231,49 @@ function draw_feedback()
     rectfill(x-2, 50, x+msg_w+2, 58, 0)
     print(feedback_msg, x, 52, feedback_color)
   end
+end
+
+-- game over screen
+function showgameover()
+  scene.update = update_gameover
+  scene.draw = draw_gameover
+end
+
+function update_gameover()
+  if btnp(4) or btnp(5) then -- z or x button
+    showmenu()
+  end
+end
+
+function draw_gameover()
+  cls(0)
+  
+  print("game over", 42, 30, 11)
+  print("", 0, 38, 7)
+  print("final score", 38, 50, 7)
+  print(tostr(total_score), 58, 60, 11)
+  print("", 0, 70, 7)
+  
+  -- rank based on score
+  local rank = "intern"
+  local rank_color = 8
+  if total_score >= 250 then
+    rank = "ceo"
+    rank_color = 11
+  elseif total_score >= 200 then
+    rank = "manager"
+    rank_color = 10
+  elseif total_score >= 150 then
+    rank = "senior"
+    rank_color = 9
+  elseif total_score >= 100 then
+    rank = "employee"
+    rank_color = 12
+  end
+  
+  print("rank: "..rank, 44, 80, rank_color)
+  print("", 0, 90, 7)
+  print("press \x8e to menu", 30, 105, 7)
 end
 
 function draw_game()
@@ -228,12 +292,6 @@ function draw_game()
     end
 
     draw_hint()
-  else
-    -- game over
-    rectfill(20, 50, 107, 70, 0)
-    rectfill(21, 51, 106, 69, 7)
-    print("inbox zero!", 42, 54, 5)
-    print("score: "..score, 42, 61, 6)
   end
 
   draw_feedback()
