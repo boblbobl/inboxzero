@@ -15,7 +15,7 @@ function update_menu()
   
   if btnp(4) then -- z button
     if menu_selection == 1 then
-      showgame()
+      showstory(1)
     else
       showcredits()
     end
@@ -39,6 +39,84 @@ function draw_menu()
   -- cursor
   local cursor_y = menu_selection == 1 and 60 or 70
   print("\x8e", 32, cursor_y, 11)
+end
+
+-- story screen
+story_dialogs = {
+  -- level 1 story
+  {
+    "your boss is stressed.",
+    "'we need inbox zero!'",
+    "'start with the easy",
+    "spam. delete the junk,",
+    "keep the important.'"
+  },
+  -- level 2 story
+  {
+    "'good work so far.'",
+    "'but the emails are",
+    "getting trickier..'",
+    "'some look legit but",
+    "aren't. stay sharp!'"
+  },
+  -- level 3 story
+  {
+    "'final push! these are",
+    "the hardest ones.'",
+    "'phishing, fake urgent",
+    "requests, be careful!'",
+    "'show me what you got!'"
+  }
+}
+
+function showstory(level)
+  story_level = level
+  story_dialog_index = 1
+  scene.update = update_story
+  scene.draw = draw_story
+end
+
+function update_story()
+  if btnp(5) then -- x button - skip entirely
+    showgame(story_level)
+    return
+  end
+  
+  if btnp(4) then -- z button - next dialog
+    story_dialog_index += 1
+    if story_dialog_index > #story_dialogs[story_level] then
+      showgame(story_level)
+    end
+  end
+end
+
+function draw_story()
+  cls(0)
+  
+  -- title
+  print("level "..story_level, 50, 20, 11)
+  
+  -- boss sprite (use avatar sprite or create boss sprite)
+  spr(192, 38, 30, 7, 4)
+  spr(199, 23, 62, 6, 2)
+  spr(231, 70, 62, 4, 2)
+  
+  -- dialog box
+  rectfill(10, 70, 117, 110, 0)
+  rectfill(11, 71, 116, 109, 7)
+  
+  -- current dialog
+  local dialog = story_dialogs[story_level][story_dialog_index]
+  if dialog then
+    print(dialog, 16, 76, 0)
+  end
+  
+  -- progress indicator
+  local progress = story_dialog_index.."/"..#story_dialogs[story_level]
+  print(progress, 100, 102, 6)
+  
+  -- controls hint
+  print("\x8e next  \x97 skip", 28, 118, 5)
 end
 
 -- credits screen
@@ -167,7 +245,7 @@ function update_game()
   if #emails == 0 then
     total_score += score
     if current_level < 3 then
-      showgame(current_level + 1)
+      showstory(current_level + 1)
     else
       showgameover()
     end
